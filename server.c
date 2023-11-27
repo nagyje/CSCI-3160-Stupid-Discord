@@ -186,7 +186,7 @@ void send_message(char *s, int sending_user_id){
 
 // This is supposed to manage the sending and receiving for all clients connected
 // This is what is threaded
-void *handle_client(void *arg){
+void *manage_client(void *arg){
 	char buffer[MAX_MESSAGE];
 	char client_name[32];
 	int leave_flag = 0;
@@ -322,7 +322,7 @@ int main(int argc, char **argv){
 
 		// Add client to client queue and thread process
 		enqueue_client(client);
-		pthread_create(&pid, NULL, &handle_client, (void*)client);
+		pthread_create(&pid, NULL, &manage_client, (void*)client);
 	}
 
 	return EXIT_SUCCESS;
