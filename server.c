@@ -14,6 +14,7 @@
 // Max message is longer for server so that server information could be appended without issues
 // for logging purposes
 #define MAX_MESSAGE 2000
+#define MAX_NAME_LENGTH 20
 
 static int client_count = 0;
 static int user_id = 10;
@@ -26,7 +27,7 @@ struct client_struct{
 	
 	int socket_file_descriptor;
 	int user_id;
-	char name[32];
+	char name[MAX_NAME_LENGTH];
 };
 
 struct queue {
@@ -195,7 +196,7 @@ void *handle_client(void *arg){
 
 	// This is supposed to print the client name to the server and send it to all connected users
 	// This worked at a point, but now it doesn't and I don't know why
-	recv(client->socket_file_descriptor, client_name, 32, 0);
+	recv(client->socket_file_descriptor, client_name, MAX_NAME_LENGTH, 0);
 	strcpy(client->name, client_name);
 	
 	// Updates buffer so it can be printed on the server end AND sent to all clients
