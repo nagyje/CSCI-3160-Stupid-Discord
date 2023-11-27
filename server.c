@@ -90,10 +90,10 @@ void enqueue_client(struct client_struct *client){
 			
 }
 
-// Tries to dequeue client, seg fualts randomly for no good reason
+// Tries to dequeue client, seg faults randomly for no good reason
 // UPDATE: I tried to fix this. Now instead of randomly seg faulting, it ALWAYS seg faults
 // NEW UPDATE: this does not segfault with new array code
-// NEW NEW
+// NEW NEW UPDATE: It segfaults again
 void dequeue_client(int search_id){
 	pthread_mutex_lock(&lock);
 	
