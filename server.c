@@ -149,6 +149,7 @@ int main(int argc, char **argv){
 			printf("\nYou have disconnected from the chat\n");
 			break;
 		}
+		sleep(.05);
 	}
 
 	close(socket_file_descriptor);
