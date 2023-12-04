@@ -155,6 +155,9 @@ int main(int argc, char **argv){
 			printf("\nYou have disconnected from the chat\n");
 			break;
 		}
+
+		// Resource load reduction
+		sleep(.1);
 	}
 
 	close(socket_file_descriptor);
