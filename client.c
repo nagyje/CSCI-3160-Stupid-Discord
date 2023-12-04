@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <errno.h>
 
 #define MAX_MESSAGE_LENGTH 1480
 #define MAX_USERNAME_LENGTH 20
@@ -90,17 +91,26 @@ void send_manager() {
 }
 
 int main(int argc, char **argv){
-	// Insert generic argument error here
-	if(argc != 2){
-		printf("Usage: %s <port>\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+	char *ip;
+	int port;
+	pthread_t send_message_thread;
+	pthread_t recv_message_thread;
+	
+	// Usage: client PORT HOST
+	if (argc == 3) {
+		port = htons(atoi(argv[1]));
+		ip = argv[2];
+		//trim_string(ip, strlen(ip));
+	} 
+	else if (argc == 2) {
+		port = htons(atoi(argv[1]));
+		ip = "127.0.0.1";
 
-	// port and address
-	// I tried to set this up so that you could communicate across networks with port forwarding
-	// But I don't know that you can with WSL
-	char *ip = "127.0.0.1";
-	int port = htons(atoi(argv[1]));
+	}
+	else {
+		port = htons(9001);
+		ip = "127.0.0.1";
+	}
 
 	printf("Please enter your name: ");
 	fgets(client_name, MAX_USERNAME_LENGTH, stdin);
@@ -109,18 +119,19 @@ int main(int argc, char **argv){
 	/* Socket settings */
 	socket_file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
 	
-	// Using sockaddr_in instead of getaddrinfo because it is easier to deal with
-	// if you you have the data already that you want to use for the connection.
-	// NOTE: I tried server_address->sin_family = AF_INET; and it fails,
-	// I don't know the difference between -> and .
+	
+	// Using sockaddr_in instead of getaddrinfo for client
 	struct sockaddr_in server_address;
 	server_address.sin_family = AF_INET;
 	server_address.sin_port = port;
-	server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
-
+	server_address.sin_addr.s_addr = inet_addr(ip);
 
 	// This tries to connect to a server with no error handling whatsoever
-	connect(socket_file_descriptor, (struct sockaddr *)&server_address, sizeof(server_address));
+	if (connect(socket_file_descriptor, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
+	{
+		printf("Error in connect: %s\n", strerror(errno));
+		return EXIT_FAILURE;
+	}
 
 	// sends client name to server, have no idea what this does if connect fails
 	//printf("The connecting client is: %s", client_name); I don't know why this line is here
@@ -128,13 +139,13 @@ int main(int argc, char **argv){
 
 	// Welcome Message
 	printf("CSCI-3160 Stupid Discord: Connected as client\n");
+	printf("This client is for light chatting only, please consult your doctor if you experience moderate to severe chatting, abnormal chat behavior, or death");
 
 	// Creates threads
 	// Going pretty strong on the whole "No error handling" strategy
-	pthread_t send_msg_thread;
-	pthread_create(&send_msg_thread, NULL, (void *) send_manager, NULL);
-	pthread_t recv_msg_thread;
-	pthread_create(&recv_msg_thread, NULL, (void *) receive_manager, NULL) ;
+	pthread_create(&send_message_thread, NULL, (void *) send_manager, NULL);
+	
+	pthread_create(&recv_message_thread, NULL, (void *) receive_manager, NULL) ;
 
 	// This loops until something breaks or the exit flag is updated to keep the process running
 	// The exit flag is currently intended to be updated by the user typing "exit"
