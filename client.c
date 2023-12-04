@@ -29,9 +29,15 @@ Usage:
 #include <pthread.h>
 #include <errno.h>
 
+/*
+	Constants and global variables:
+	MAX_MESSAGE_LENGTH
+ 	MAX_USERNAME_LENGTH
+  	exit_flag
+   	socket_file_descriptor
+*/
 #define MAX_MESSAGE_LENGTH 1480
 #define MAX_USERNAME_LENGTH 20
-
 int exit_flag = 0;
 int socket_file_descriptor = 0;
 
@@ -62,8 +68,7 @@ void receive_manager() {
 	int message_flag = 1;
 	char message[MAX_MESSAGE_LENGTH] = {};
 	
-	while (message_flag) {
-		
+	while (message_flag) {	
 		int receive = recv(socket_file_descriptor, message, MAX_MESSAGE_LENGTH, 0);
 		if (receive > 0) {
 			printf("%s\n", message);
