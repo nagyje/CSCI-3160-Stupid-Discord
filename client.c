@@ -1,3 +1,24 @@
+/*
+Program Name: 	client.c
+Author: Jackson Denti
+Contributors:
+	Chris Bragg
+	Chris Upham
+	Joe Nagy
+	Sophia Herrell
+Created:	11/16/23
+Last Edited: 	12/04/23
+Description:	This is a client that connect to a server that facilitates text chat given an address and port. 
+		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
+
+Additional Information:
+- This program is designed to be run from a linux kernal. It has been tested on WSL on Windows 10, 11 and Ubuntu 22.04.3
+
+Usage:
+- 	./client HOST_ADDR PORT
+	
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +160,7 @@ int main(int argc, char **argv){
 
 	// Welcome Message
 	printf("CSCI-3160 Stupid Discord: Connected as client\n");
-	printf("This client is for light chatting only, please consult your doctor if you experience moderate to severe chatting, abnormal chat behavior, or death");
+	printf("This client is for light chatting only, please consult your doctor if you experience moderate to severe chatting, abnormal chat behavior, or death\n");
 
 	// Creates threads
 	// Going pretty strong on the whole "No error handling" strategy
