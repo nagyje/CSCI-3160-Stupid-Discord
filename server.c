@@ -297,9 +297,6 @@ int main(int argc, char **argv){
 		// Add client to client queue and thread process
 		enqueue_client(client);
 		pthread_create(&pid, NULL, &manage_client, (void*)client);
-		
-		// Resource load reduction
-		sleep(0.1);
 	}
 
 	return EXIT_SUCCESS;
