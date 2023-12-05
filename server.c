@@ -7,8 +7,8 @@ Contributors:
 	Joe Nagy
 	Sophia Herrell
 Created:	11/16/23
-Last Edited: 	12/04/23
-Description:	Creates an instance of a server that allows clients to connect if they know the port and Hosting Address. 
+Last Edited: 	12/99/23
+Description:	Creates an instance of a server that allows clients to connect if they know the port and Hosting Address.
 		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
 
 Additional Information:
@@ -16,7 +16,7 @@ Additional Information:
 
 Usage:
 - 	./server PORT or ./server
-	If no port number is specified, the default is 9001 
+	If no port number is specified, the default is 9001
 */
 
 #include <sys/socket.h>
@@ -43,13 +43,14 @@ Usage:
 		it is currently used to manage loops after switching from a linked list of
 		clients to an array of clients
 	user_id is to provide a unique number to identify the clients because if you try
-		and identify them by their IP, you can run into issues over network with 
+		and identify them by their IP, you can run into issues over network with
 		multiple clients behind the same gateway
 	pthread_mutex stuff is to be mutex stuff
 */
 #define MAX_CLIENTS 10
 #define MAX_MESSAGE 2000
 #define MAX_NAME_LENGTH 20
+static int leave_flag = 0;
 static int client_count = 0;
 static int user_id = 13;
 FILE *backlog_file_pointer;
@@ -60,7 +61,7 @@ struct client_struct{
 	struct sockaddr_in address;
 	struct client_struct *next;
 	struct client_struct *prev;
-	
+
 	int socket_file_descriptor;
 	int user_id;
 	char name[MAX_NAME_LENGTH];
@@ -76,11 +77,11 @@ struct client_struct *clients[MAX_CLIENTS];
 // Method assumes enqueue is only called if max clients not reached
 void enqueue_client(struct client_struct *client){
 	pthread_mutex_lock(&lock);
-	
+
 	for(int i=0; i <= client_count; ++i)
 	{
 		if(!clients[i])
-		{		
+		{
 			clients[i] = client;
 			client_count++;
 			pthread_mutex_unlock(&lock);
@@ -95,29 +96,44 @@ void enqueue_client(struct client_struct *client){
 // NEW NEW UPDATE: It segfaults again
 void dequeue_client(int search_id){
 	pthread_mutex_lock(&lock);
-	
+
 	for(int i=0; i < MAX_CLIENTS; ++i)
-	{		
+	{
 		if(clients[i]->user_id == search_id)
 		{
 			clients[i] = NULL;
 			client_count--;
 			pthread_mutex_unlock(&lock);
 			return;
-		}	
+		}
 	}
 }
 
 // Manually null terminates string
 void null_term_string (char* arr, int length) {
-	for (int i = 0; i < length; i++) 
+	for (int i = 0; i < length; i++)
 	{
-		if (arr[i] == '\n') 
+		if (arr[i] == '\n')
 		{
 			arr[i] = '\0';
 			return;
 		}
 	}
+}
+
+// Send message to specific client
+void send_private_message(char *s, char *name){
+	pthread_mutex_lock(&lock);
+
+	for(int i=0; i<MAX_CLIENTS; ++i)
+		{
+			if(clients[i] && strcmp(clients[i]->name, name) == 0)
+			{
+				write(clients[i]->socket_file_descriptor, s, strlen(s));
+			}
+		}
+
+	pthread_mutex_unlock(&lock);
 }
 
 // Send message to all clients except sender
@@ -131,7 +147,7 @@ void send_message(char *s, int sending_user_id){
 			write(clients[i]->socket_file_descriptor, s, strlen(s));
 		}
 	}
-	
+
 	pthread_mutex_unlock(&lock);
 }
 
@@ -140,6 +156,7 @@ void send_message(char *s, int sending_user_id){
 // This is what is threaded
 void *manage_client(void *arg){
 	char buffer[MAX_MESSAGE];
+	char command_buffer[MAX_MESSAGE];
 	char client_name[MAX_NAME_LENGTH];
 	int leave_flag = 0;
 	char backlogfile_name[128];
@@ -176,7 +193,7 @@ void *manage_client(void *arg){
 	// This worked at a point, but now it doesn't and I don't know why
 	recv(client->socket_file_descriptor, client_name, MAX_NAME_LENGTH, 0);
 	strcpy(client->name, client_name);
-	
+
 	// Updates buffer so it can be printed on the server end AND sent to all clients
 	sprintf(buffer, "%s has joined this chat", client->name);
 	printf("%s\n", buffer); // This is the line that prints to server, could be used for serverlogs
@@ -185,16 +202,58 @@ void *manage_client(void *arg){
 	memset(buffer, 0, MAX_MESSAGE);
 
 	while(1)
-	{
-
-		// From recv man page: 
+	{ 
+		int com_flag = 0;
+    
+		// From recv man page:
 		// These calls return the number of bytes received, or -1 if an
 		// error occurred. When a stream socket peer has performed an orderly shutdown, the
 		// return value will be 0
 		int receive = recv(client->socket_file_descriptor, buffer, MAX_MESSAGE, 0);
+
 		
 		// if any number of bytes was received
-		if (receive > 0)
+		strcpy(command_buffer, buffer);
+		const char delim[2] = " ";
+		char *arg_one;
+		char *arg_two;
+		char *arg_three;
+		char *arg_four;
+
+		arg_one = strtok(command_buffer, delim);
+		arg_two = strtok(NULL, delim);
+		arg_three = strtok(NULL, delim);
+		arg_four = strtok(NULL, delim);
+
+		if(strcmp(arg_two, "/whisper") == 0) {
+			com_flag = 1;
+		}
+		if(strcmp(arg_two, "/list-all") == 0) {
+			com_flag = 2;
+		}
+
+		time_t t = time(NULL);
+		struct tm tm = *localtime(&t);
+
+		if (com_flag == 1)
+		{
+			//captures arg_four and anything else after 
+			char whispered_message[MAX_MESSAGE];
+			strcpy(whispered_message, arg_four);
+			while ((arg_four = strtok(NULL, delim)) != NULL) {
+				strcat(whispered_message, " ");
+				strcat(whispered_message, arg_four);
+			}
+			sprintf(buffer, "%s whispered: %s", client->name, whispered_message);
+			send_private_message(buffer, arg_three);
+			com_flag = 0; //set flag back to 0 to ensure the user doesn't error out.
+		}
+		if (com_flag == 2)
+		{
+			send_private_message("Detected List Command", client->name);
+			com_flag = 0; //set flag back to 0 to ensure the user doesn't error out.
+		}
+		else if (receive > 0 && com_flag == 0)
 		{
 			null_term_string(buffer, strlen(buffer));
 			char bufferTimeStamp[MAX_MESSAGE - 62]; //Subtracting 62 to makes space for the numbers below with %d
@@ -203,7 +262,7 @@ void *manage_client(void *arg){
 			fprintf(backlog_file_pointer, "%s\n", buffer); // Write to the file
 			send_message(buffer, client->user_id);
 			printf("%s\n", buffer);
-		} 
+		}
 		// If the user types "exit" or if the socket was shut down safely
 		// I have no idea how the user would safely close the socket, but I threw
 		// it in there as an exit condition
@@ -220,13 +279,13 @@ void *manage_client(void *arg){
 		{
 			// I think you are supposed to be able to chain other server commands in here
 		}
-		else 
+		else
 		{
 			// Pretty sure this only hits if recv returns -1, meaning there was an error
-			printf("%s errored out", client->name);
+			printf("%s errored out\n", client->name);
+			printf("%s\n", strerror(errno));
 			break;
 		}
-
 		// Clear message buffer
 		memset(buffer, 0, MAX_MESSAGE);
 	}
@@ -307,10 +366,10 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Error in listen\n");
 		exit(EXIT_FAILURE);
 	}
-	
+
 	printf("CSCI3160 Stupid Discord: Server\n");
 
-	while(1)
+	while(!(leave_flag))
 	{
 		client_length = sizeof(client_addr);
 		connection_file_descriptor = accept(sfd, (struct sockaddr*)&client_addr, &client_length);
