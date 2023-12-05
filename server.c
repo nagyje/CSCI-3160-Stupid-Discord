@@ -246,12 +246,10 @@ void *manage_client(void *arg){
 			}
 			sprintf(buffer, "%s whispered: %s", client->name, whispered_message);
 			send_private_message(buffer, arg_three);
-			com_flag = 0; //set flag back to 0 to ensure the user doesn't error out.
 		}
 		if (com_flag == 2)
 		{
 			send_private_message("Detected List Command", client->name);
-			com_flag = 0; //set flag back to 0 to ensure the user doesn't error out.
 		}
 		else if (receive > 0 && com_flag == 0)
 		{
