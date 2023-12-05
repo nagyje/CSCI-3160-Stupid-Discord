@@ -2,7 +2,7 @@
 Program Name: Chat.py
 Author: Sophia Herrell
 Contributors: Joe Nagy
-Last Edited: 12/2/23
+Last Edited: 12/5/23
 Description: Connects a user as a client to a server. 
              Facilitates light chatting only. 
 
