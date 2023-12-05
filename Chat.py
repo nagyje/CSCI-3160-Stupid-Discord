@@ -1,8 +1,8 @@
 """
 Program Name: Chat.py
 Author: Sophia Herrell
-Contributors: Joe Nagy 
-Last Edited: 12/5/23
+Contributors: Joe Nagy
+Last Edited: 12/2/23
 Description: Connects a user as a client to a server. 
              Facilitates light chatting only. 
 
@@ -11,16 +11,14 @@ Additional Information:
   with python extensions installed. If you set up WSL in 
   VS code, all you have to do is download the suggested
   extensions. 
-- Dependent on C files guiClient.c
+- Dependent on C files clientTest.c
 
 Usage:
 - You can run this program on its own using >$ python3 Chat.py, 
   but it is designed to be run from LogIn.py. The main difference 
-  is that LogIn.py allows you to input the username, port number, and IP.  
-    - Otherwise, default username/port/ip is Sophia/9001/127.0.0.1
+  is that LogIn.py allows you to input the username.  
 - You must have a server instance running on the same port for the 
   client to connect to 
-- Remember to update LIBRARY_PATH
 """
 
 #################### Import statements and constants ####################
@@ -36,7 +34,7 @@ import datetime
 DEFAULT_USER = "Sophia"
 DEFAULT_PORT = 9001
 DEFAULT_IP = "127.0.0.1"
-LIBRARY_PATH = "/home/csci3160/stupid-discord/my_functions.so"
+LIBRARY_PATH = "/mnt/c/Users/Joe/csci3160/project1/my_functions.so"
 
 class Client(Structure):
     _fields_ = [
@@ -47,20 +45,40 @@ class Client(Structure):
     ]
 
 #################### Functions ####################
-# compiles guiClient.c into library .so file 
+
+# def connect_to_server_subprocess():
+#     # Compile the C program
+#     compile_command = ["gcc", "-Wall", "clientTest.c", "-o", "clientTest"]
+#     subprocess.call(compile_command)
+#     # Run the compiled program with port and username as arguments in the background
+#     run_command = ["./clientTest", port, username]  # Replace "1234" and "YourUsername" with the desired port and username
+#     subprocess.Popen(run_command)
+
 def compile_library():
-    compile_command = ["gcc", "-fPIC", "-shared", "guiClient.c", "-o", "my_functions.so"]
+    compile_command = ["gcc", "-fPIC", "-shared", "clientTest.c", "-o", "my_functions.so"]
     subprocess.call(compile_command)
-        
+    
+# not used right now 
+def initialize_client():
+    initialize_connection = my_functions.initialize_connection
+    initialize_connection.argtypes = [POINTER(Client), c_char_p, c_int, c_char_p]
+    initialize_connection.restype = c_int
+    
+    close_connection = my_functions.close_connection
+    close_connection.argtypes = [POINTER(Client)]
+    
+    send_message = my_functions.send_message
+    send_message.argtypes = [POINTER(Client), c_char_p]
+    
+    receive_messages = my_functions.receive_messages
+    receive_messages.argtypes = [c_void_p]
+
 # def get_message():
 #     message = entry.get()
 #     if message:
-#         # Send the message using the C library
-#         my_functions.send_message(byref(client), message.encode())
-#         # Display the message in the chat area
-#         chat_area.insert(tk.END, f"You: {message}\n")
+#         chat_area.insert(tk.END, f"You: {message}\n") #Display message
 #         entry.delete(0, tk.END)  # Clear the entry field
-        
+   
 def get_message(event=None):
     message = entry.get()
     if message:
@@ -72,32 +90,27 @@ def get_message(event=None):
         chat_area.insert(tk.END, f"{dt_string}  You: {message}\n")
         entry.delete(0, tk.END)  # Clear the entry field
 
+# to do: this doesn't work 
 def exit_chat():
-    window.destroy() # kills the gui
-    client.exit_flag = 1 # updates client state 
+    window.destroy()
+    client.exit_flag = 1
     my_functions.close_connection(byref(client))
     sys.exit(0)
     
 #################### Begin execution ####################
 
 # Read the values provided from LogIn.py 
-# Username
-if len(sys.argv) > 1:
+if sys.argv[1]:
     username = sys.argv[1]
-else:
-    username = DEFAULT_USER
 
-# Port
-if len(sys.argv) > 2:
+if sys.argv[2]:
     port = sys.argv[2]
-else: 
+
+if not port:
     port = DEFAULT_PORT
-    
-# IP Address
-if len(sys.argv) > 3:
-    ip = sys.argv[3]
-else: 
-    ip = DEFAULT_IP
+
+if not username:
+    username = DEFAULT_USER
     
 # Load the C library
 so_file = LIBRARY_PATH
@@ -106,15 +119,37 @@ my_functions = CDLL(so_file)
 
 # Initialize the client
 client = Client()
-my_functions.initialize_connection(byref(client), ip.encode(), int(port), username.encode())
+my_functions.initialize_connection(byref(client), b"127.0.0.1", int(port), username.encode())
 
 #################### Receive messages ####################
+
+# # Set up to receive messages 
+# received_message = ""
+# receive_messages = my_functions.receive_messages
+# receive_messages.argtypes = [POINTER(Client)]
+
+# def receive_messages_thread():
+#     while not client.exit_flag:
+#         # Call the C function to receive a message
+#         received_message = my_functions.receive_messages(byref(client)).decode("utf-8")
+#         # Check if there's a new message
+#         if client.received_message:
+#             # Update the chat area within the main GUI thread using after method
+#             window.after(0, lambda: chat_area.insert(tk.END, f"msg: {received_message}\n"))
+#             # Clear the received_message buffer
+#             client.received_message = None
+#         # Pause for a short duration to avoid high CPU usage
+#         time.sleep(0.1)
+
+# # Start the receive thread
+# receive_thread = threading.Thread(target=receive_messages_thread)
+# receive_thread.start()
 
 # Set up to receive messages 
 received_message = ""
 receive_messages = my_functions.receive_messages
 receive_messages.argtypes = [POINTER(Client)]
-receive_messages.restype = c_char_p
+receive_messages.restype = c_char_p  # Specify the return type as c_char_p
 
 def receive_messages_thread():
     global received_message  # Use the global variable to store the received message
@@ -134,6 +169,7 @@ receive_thread.start()
 
 
 #################### Receive messages ####################
+
 
 #################### Main window -- GUI stuff ####################
 
@@ -155,13 +191,13 @@ profile_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 tool_bar = tk.Frame(left_frame, width=175, height=185, bd=1, relief="solid", bg="#2F3136")
 tool_bar.grid(row=1, column=0, padx=5, pady=5, sticky="ns")
 
-# Users online label
-users_online = tk.Label(left_frame, text="Users Online", fg="white", bg="#2F3136")
-users_online.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+# Friends label
+friends_label = tk.Label(left_frame, text="Friends Online", fg="white", bg="#2F3136")
+friends_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
-# Users online frame
-users_frame = tk.Frame(left_frame, width=175, height=250, bd=1, relief="solid", bg="#2F3136")
-users_frame.grid(row=3, column=0, padx=5, pady=5, sticky="ns")
+# Friends frame
+friends_frame = tk.Frame(left_frame, width=175, height=250, bd=1, relief="solid", bg="#2F3136")
+friends_frame.grid(row=3, column=0, padx=5, pady=5, sticky="ns")
 
 # Exit frame
 exit_frame = tk.Frame(left_frame, width=175, height=50, bg="#2F3136")
