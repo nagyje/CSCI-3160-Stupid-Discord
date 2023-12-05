@@ -25,6 +25,7 @@ Usage:
 #################### Import statements and constants ####################
 import tkinter as tk
 import subprocess
+import re
 
 MAX_USERNAME_LENGTH = 20
 DEFAULT_PORT = 9001
@@ -33,24 +34,34 @@ DEFAULT_IP = "127.0.0.1"
 #################### Functions ####################
 
 def join_chat():
-    username = name_entry.get()
+    username = name_entry.get()  
     port = port_entry.get()
-    ip = ip_entry.get()
-    
+    if not port:
+        port = DEFAULT_PORT
+    # validate username and port
     if username:
         if len(username) <= MAX_USERNAME_LENGTH:
-            welcome_label.config(text=f"Welcome, {username}!")
-            launch_chat(username, port, ip)
+            if port:
+                if len(port) == 4:
+                    if re.match(r'^\d+$', port):
+                        welcome_label.config(text=f"Welcome, {username}!")
+                        launch_chat(username, port)
+                    else:
+                        welcome_label.config(text="Port must be characters 0-9")
+                else:
+                    welcome_label.config(text="Port must be 4 digits long.")
+            else:
+                welcome_label.config(text="Please enter a 4 digit port.")
         else:
             welcome_label.config(text="Names cannot be longer than 20 characters.")
     else:
         welcome_label.config(text="Please enter your name.")
-        
-def launch_chat(username, port, ip):
+         
+def launch_chat(username, port):
     # Close the Tkinter window
     logIn.destroy()
     # Launch the chat.py script with the provided username, port, and ip
-    subprocess.run(['python3', 'Chat.py', username, port, ip])
+    subprocess.run(['python3', 'Chat.py', username, port])
 
 #################### Main ####################
 logIn = tk.Tk()
