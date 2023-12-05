@@ -7,7 +7,7 @@ Contributors:
 	Joe Nagy
 	Sophia Herrell
 Created:	11/16/23
-Last Edited: 	12/03/23
+Last Edited: 	12/99/23
 Description:	Creates an instance of a server that allows clients to connect if they know the port and Hosting Address.
 		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
 
@@ -31,6 +31,7 @@ Usage:
 #include <sys/types.h>
 #include <netdb.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 /*
 	Constants and global variables:
@@ -52,6 +53,7 @@ Usage:
 static int leave_flag = 0;
 static int client_count = 0;
 static int user_id = 13;
+FILE *backlog_file_pointer;
 pthread_mutex_t lock;
 pthread_mutex_init(lock);
 
@@ -157,7 +159,33 @@ void *manage_client(void *arg){
 	char command_buffer[MAX_MESSAGE];
 	char client_name[MAX_NAME_LENGTH];
 	int leave_flag = 0;
+	char backlogfile_name[128];
 
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+
+	struct stat st = {0}; // Will use to check if the directory exists
+	char backlog_dirname[128];
+
+	strcpy(backlog_dirname, "serverbacklogs");
+
+	// Checks if directory exists, if it doesn't then make it
+	if (stat(backlog_dirname, &st) == -1) {
+		mkdir(backlog_dirname, 0777);
+	}
+
+	char yearForBacklog[128];
+	char monthForBacklog[128];
+	char dayForBacklog[128];
+
+	strcpy(backlogfile_name, "serverbacklogs/"); // Sets backlogfile_name
+	sprintf(yearForBacklog, "%d-", tm.tm_year + 1900);
+	strcat(backlogfile_name, yearForBacklog);
+	sprintf(monthForBacklog, "%02d-", tm.tm_mon + 1);
+	strcat(backlogfile_name, monthForBacklog); 
+	sprintf(dayForBacklog, "%02d", tm.tm_mday);
+	strcat(backlogfile_name, dayForBacklog); //tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+	backlog_file_pointer = fopen(backlogfile_name, "a"); // "a" means append
 
 	struct client_struct *client = (struct client_struct *)arg;
 
@@ -169,20 +197,23 @@ void *manage_client(void *arg){
 	// Updates buffer so it can be printed on the server end AND sent to all clients
 	sprintf(buffer, "%s has joined this chat", client->name);
 	printf("%s\n", buffer); // This is the line that prints to server, could be used for serverlogs
+	fprintf(backlog_file_pointer, "%s\n", buffer); // Write to the file
 	send_message(buffer, client->user_id);
 	memset(buffer, 0, MAX_MESSAGE);
 
 	while(1)
-	{
+	{ 
 		int com_flag = 0;
-
+    
 		// From recv man page:
 		// These calls return the number of bytes received, or -1 if an
 		// error occurred. When a stream socket peer has performed an orderly shutdown, the
 		// return value will be 0
 		int receive = recv(client->socket_file_descriptor, buffer, MAX_MESSAGE, 0);
-		strcpy(command_buffer, buffer);
 
+		
+		// if any number of bytes was received
+		strcpy(command_buffer, buffer);
 		const char delim[2] = " ";
 		char *arg_one;
 		char *arg_two;
@@ -225,9 +256,10 @@ void *manage_client(void *arg){
 		else if (receive > 0 && com_flag == 0)
 		{
 			null_term_string(buffer, strlen(buffer));
-			char buffer2[MAX_MESSAGE - 62]; //Subtracting 62 to makes space for the numbers below with %d
-			strcpy(buffer2, buffer);
-			sprintf(buffer, "%d-%02d-%02d %02d:%02d  %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, buffer2);
+			char bufferTimeStamp[MAX_MESSAGE - 62]; //Subtracting 62 to makes space for the numbers below with %d
+			strcpy(bufferTimeStamp, buffer);
+			sprintf(buffer, "%d-%02d-%02d %02d:%02d  %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, bufferTimeStamp);
+			fprintf(backlog_file_pointer, "%s\n", buffer); // Write to the file
 			send_message(buffer, client->user_id);
 			printf("%s\n", buffer);
 		}
@@ -239,6 +271,7 @@ void *manage_client(void *arg){
 			sprintf(buffer, "%s has left this chat", client->name);
 			printf("%s\n", buffer);
 			//printf("User has left");
+			fprintf(backlog_file_pointer, "%s\n", buffer); // Write to the file
 			send_message(buffer, client->user_id);
 			break;
 		}
@@ -261,6 +294,7 @@ void *manage_client(void *arg){
 	close(client->socket_file_descriptor);
 	dequeue_client(client->user_id);
 	free(client);
+	fclose(backlog_file_pointer);
 
 	pthread_detach(pthread_self());
 
