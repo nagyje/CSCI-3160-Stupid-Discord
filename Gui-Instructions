@@ -6,13 +6,12 @@ Set up VS Code
 -	Download python extension pack (VS code will probably suggest them). Even if you already have them downloaded on your machine, you have to download them again in WSL
 -	Open a terminal in VS code. This works the same as the normal command window.
     - Ctrl+Shift+P then use the View: Toggle Terminal command
-- To run python, you don't have to compile or anything. python3 filename.py runs a py script
+- Enter >$ sudo apt-get install python3-tk into the terminal (to get gui manager)
+- Configure the python interpreter (bottom right corner)
+- To run python, you don't have to compile or anything. >$ python3 filename.py runs a py script
+- Make sure to update the value LIBRARY_PATH to the filepath of my_functions.so. my_functions.so is recompiled upon program start, so you will not have it in your directory on the first run. 
 
 Gui user guide
-KNOWN BUG: it does not exit correctly. Pressing exit or the X in the corner will close the window, 
-but the client won't exit the server until you go into the VS Code terminal and press ctrl+C to 
-completely end the program. Something is going wrong with the threads, or something. I am working on this.
-
 To run the gui, all you have to do is put the files below into your folder, set up py libraries, 
 set up a server on port 9001, and then run  >$ python3 Chat.py or >$ python3 LogIn.py
 
@@ -26,12 +25,10 @@ set up a server on port 9001, and then run  >$ python3 Chat.py or >$ python3 Log
   This is the file that creates a gui and then manages library calls to the client C code
   to actually run the chat 
 
-- clientTest.c
+- guiClient.c
   Modified client code, broken up into functions and changed slightly.
-  To use it, you have to run cc -fPIC -shared -o my_functions.so clientTest.c
+  To use it, you have to run cc -fPIC -shared -o my_functions.so guiClient.c
   Chat.py does this automatically every time you run it, but if you change the file and then test
   it in another program, you have to compile it into the .so again.
 
-- ircserver.c
-  I have been using ircserver.c to set up my server. server.c should work, but there may be some
-  issues with exiting chat displaying correctly. 
+- server.c to open the server. The server must be open for the client to connect. 
