@@ -182,7 +182,7 @@ void *manage_client(void *arg){
 	sprintf(yearForBacklog, "%d-", tm.tm_year + 1900);
 	strcat(backlogfile_name, yearForBacklog);
 	sprintf(monthForBacklog, "%02d-", tm.tm_mon + 1);
-	strcat(backlogfile_name, monthForBacklog); 
+	strcat(backlogfile_name, monthForBacklog);
 	sprintf(dayForBacklog, "%02d", tm.tm_mday);
 	strcat(backlogfile_name, dayForBacklog); //tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 	backlog_file_pointer = fopen(backlogfile_name, "a"); // "a" means append
@@ -202,58 +202,57 @@ void *manage_client(void *arg){
 	memset(buffer, 0, MAX_MESSAGE);
 
 	while(1)
-	{ 
-		int com_flag = 0;
-    
+	{
 		// From recv man page:
 		// These calls return the number of bytes received, or -1 if an
 		// error occurred. When a stream socket peer has performed an orderly shutdown, the
 		// return value will be 0
 		int receive = recv(client->socket_file_descriptor, buffer, MAX_MESSAGE, 0);
 
-		
-		// if any number of bytes was received
+		null_term_string(buffer, strlen(buffer));
+
+		//copy the buffer into a dedicated buffer
 		strcpy(command_buffer, buffer);
+
+		//define delimter string to split the command into args
 		const char delim[2] = " ";
+
+		//declare pointers to store parsed args
 		char *arg_one;
 		char *arg_two;
 		char *arg_three;
 		char *arg_four;
 
+		//extracting the args from the string
 		arg_one = strtok(command_buffer, delim);
 		arg_two = strtok(NULL, delim);
 		arg_three = strtok(NULL, delim);
 		arg_four = strtok(NULL, delim);
 
-		if(strcmp(arg_two, "/whisper") == 0) {
-			com_flag = 1;
-		}
-		if(strcmp(arg_two, "/list-all") == 0) {
-			com_flag = 2;
-		}
-
+		//other chris did this
 		time_t t = time(NULL);
 		struct tm tm = *localtime(&t);
 
-		if (com_flag == 1)
-		{
-			//captures arg_four and anything else after 
+		//checks if the whisper command was entered
+		if(strcmp(arg_two, "/whisper") == 0) {
+
+			//captures arg_four and anything else after
 			char whispered_message[MAX_MESSAGE];
 			strcpy(whispered_message, arg_four);
 			while ((arg_four = strtok(NULL, delim)) != NULL) {
-				strcat(whispered_message, " ");
+				strcat(whispered_message, delim);
 				strcat(whispered_message, arg_four);
 			}
-			sprintf(buffer, "%s whispered: %s", client->name, whispered_message);
+
+			//stole some stuff from other chris to make my output similar
+			sprintf(buffer, "%d-%02d-%02d %02d:%02d  %s whispered: %s",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, client->name, whispered_message);
 			send_private_message(buffer, arg_three);
+			printf("%s\n", buffer);
+
 		}
-		if (com_flag == 2)
+		else if (receive > 0)
 		{
-			send_private_message("Detected List Command", client->name);
-		}
-		else if (receive > 0 && com_flag == 0)
-		{
-			null_term_string(buffer, strlen(buffer));
 			char bufferTimeStamp[MAX_MESSAGE - 62]; //Subtracting 62 to makes space for the numbers below with %d
 			strcpy(bufferTimeStamp, buffer);
 			sprintf(buffer, "%d-%02d-%02d %02d:%02d  %s", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, bufferTimeStamp);
@@ -272,10 +271,6 @@ void *manage_client(void *arg){
 			fprintf(backlog_file_pointer, "%s\n", buffer); // Write to the file
 			send_message(buffer, client->user_id);
 			break;
-		}
-		else if (strcmp(buffer, "test") == 0)
-		{
-			// I think you are supposed to be able to chain other server commands in here
 		}
 		else
 		{
