@@ -2,7 +2,7 @@
 Program Name: Chat.py
 Author: Sophia Herrell
 Contributors: Joe Nagy 
-Last Edited: 12/5/23
+Last Edited: 12/8/23
 Description: Connects a user as a client to a server. 
              Facilitates light chatting only. 
 
@@ -36,7 +36,7 @@ import datetime
 DEFAULT_USER = "Sophia"
 DEFAULT_PORT = 9001
 DEFAULT_IP = "127.0.0.1"
-LIBRARY_PATH = "/home/csci3160/stupid-discord/my_functions.so"
+LIBRARY_PATH = "/mnt/c/Users/Joe/csci3160/project/CSCI-3160-Stupid-Discord-main/my_functions.so"
 
 class Client(Structure):
     _fields_ = [
@@ -123,8 +123,15 @@ def receive_messages_thread():
         received_message = receive_messages(byref(client)).decode("utf-8")
         # Check if there's a new message
         if received_message:
-            # Update the chat area within the main GUI thread using the after method
-            window.after(0, lambda: chat_area.insert(tk.END, f"{received_message}\n"))
+            if received_message and received_message[0] != '`':
+                print(received_message)
+                # Update the chat area within the main GUI thread using the after method
+                window.after(0, lambda: chat_area.insert(tk.END, f"{received_message}\n"))
+            else:
+                user_list = [element.replace('`', '\n') for element in received_message]
+                user_list[0] = ''
+                window.after(0, lambda: users_area.delete(1.0, tk.END))
+                window.after(0, lambda: users_area.insert(tk.END, f"{''.join(user_list)}"))
         # Pause for a short duration to avoid high CPU usage
         time.sleep(0.1)
 
@@ -163,6 +170,10 @@ users_online.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 users_frame = tk.Frame(left_frame, width=175, height=250, bd=1, relief="solid", bg="#2F3136")
 users_frame.grid(row=3, column=0, padx=5, pady=5, sticky="ns")
 
+# Users online area ------------------------
+users_area = tk.Text(users_frame, height=10, width=25, fg="white", bg="#36393F")
+users_area.pack(padx=10, pady=10)
+
 # Exit frame
 exit_frame = tk.Frame(left_frame, width=175, height=50, bg="#2F3136")
 exit_frame.grid(row=4, column=0, padx=5, pady=5, sticky="ns")
@@ -198,3 +209,4 @@ send_button.pack(side=tk.LEFT, padx=5)
 
 # Run the GUI
 window.mainloop()
+
