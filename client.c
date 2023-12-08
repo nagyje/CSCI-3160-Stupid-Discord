@@ -7,7 +7,7 @@ Contributors:
 	Joe Nagy
 	Sophia Herrell
 Created:	11/16/23
-Last Edited: 	12/04/23
+Last Edited: 	12/08/23
 Description:	This is a client that connect to a server that facilitates text chat given an address and port. 
 		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
 
@@ -71,13 +71,14 @@ void receive_manager() {
 	while (message_flag) {	
 		int receive = recv(socket_file_descriptor, message, MAX_MESSAGE_LENGTH, 0);
 		if (receive > 0) {
-			printf("%s\n", message);
-			fflush(stdout);
-		} 
-		else if (receive == 0) 
-		{
+			// Check for user list indicator
+			if (message[0] != '`') {
+				printf("%s\n", message);
+				fflush(stdout);
+			}
+		} else if (receive == 0) {
 			message_flag = 0;
-		} 
+		}
 		memset(message, 0, MAX_MESSAGE_LENGTH);
 	}
 }
