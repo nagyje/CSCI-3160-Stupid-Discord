@@ -7,7 +7,7 @@ Contributors:
 	Joe Nagy
 	Sophia Herrell
 Created:	11/16/23
-Last Edited: 	12/99/23
+Last Edited: 	12/8/23
 Description:	Creates an instance of a server that allows clients to connect if they know the port and Hosting Address.
 		Allows some light chatting, please consult your doctor if you experience moderate to severe chatting.
 
@@ -164,6 +164,7 @@ void *manage_client(void *arg){
 	char client_name[MAX_NAME_LENGTH];
 	int leave_flag = 0;
 	char backlogfile_name[128];
+	char userbuf[22];
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -285,6 +286,18 @@ void *manage_client(void *arg){
 		}
 		// Clear message buffer
 		memset(buffer, 0, MAX_MESSAGE);
+
+		// Add client names and delimiter to buffer
+		for (int cli = 0; cli < MAX_CLIENTS; cli++) {
+			if (clients[cli] != NULL) {
+				snprintf(userbuf, sizeof(userbuf), "`%s", clients[cli]->name);
+				strcat(buffer, userbuf);
+			}
+		}
+		send_message(buffer, client->user_id);
+		
+		// Clear message buffer
+		memset(buffer, 0, MAX_MESSAGE);
 	}
 
 	// close socket and free up memory
@@ -387,3 +400,4 @@ int main(int argc, char **argv){
 
 	return EXIT_SUCCESS;
 }
+
