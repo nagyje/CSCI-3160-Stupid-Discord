@@ -85,7 +85,7 @@ void enqueue_client(struct client_struct *client){
 			clients[i] = client;
 			client_count++;
 			pthread_mutex_unlock(&lock);
-			return;
+			break;
 		}
 	}
 }
@@ -94,6 +94,7 @@ void enqueue_client(struct client_struct *client){
 // UPDATE: I tried to fix this. Now instead of randomly seg faulting, it ALWAYS seg faults
 // NEW UPDATE: this does not segfault with new array code
 // NEW NEW UPDATE: It segfaults again
+// NEW NEW NEW UPDATE_FINAL: so it turns out return is an awful way to break out of a loop and that has been causing the problems
 void dequeue_client(int search_id){
 	pthread_mutex_lock(&lock);
 
@@ -116,7 +117,7 @@ void null_term_string (char* arr, int length) {
 		if (arr[i] == '\n')
 		{
 			arr[i] = '\0';
-			return;
+			break;
 		}
 	}
 }
