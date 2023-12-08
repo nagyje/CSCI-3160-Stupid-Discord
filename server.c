@@ -298,6 +298,7 @@ void *manage_client(void *arg){
 		
 		// Clear message buffer
 		memset(buffer, 0, MAX_MESSAGE);
+		memset(userbuf, 0, 22);
 	}
 
 	// close socket and free up memory
