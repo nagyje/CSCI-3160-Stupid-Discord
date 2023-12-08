@@ -105,7 +105,7 @@ void dequeue_client(int search_id){
 			clients[i] = NULL;
 			client_count--;
 			pthread_mutex_unlock(&lock);
-			return;
+			break;
 		}
 	}
 }
